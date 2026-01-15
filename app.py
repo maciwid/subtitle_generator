@@ -4,6 +4,7 @@ from openai import OpenAI
 from hashlib import md5
 from pydub import AudioSegment
 import tempfile
+from io import BytesIO
 
 
 AUDIO_TRANSCRIBE_MODEL = "whisper-1"
@@ -30,7 +31,7 @@ if not st.session_state.get("openai_api_key"):
         st.session_state["openai_api_key"] = env["OPENAI_API_KEY"]
 
     else:
-        st.info("Dodaj swój klucz API OpenAI aby móc korzystać z tej aplikacji")
+        st.info("Add your OpenAI API key to use the app.")
         st.session_state["openai_api_key"] = st.text_input("Klucz API", type="password")
         if st.session_state["openai_api_key"]:
             st.rerun()
@@ -51,9 +52,13 @@ if "video_bytes" not in st.session_state:
 st.title("SUBTITLE GENERATOR")
 
 uploaded_file = st.file_uploader("Send a file for transcription", type=["mp3", "mp4", "m4a", "wav"], key="video_file")
-if uploaded_file is not None:
+if uploaded_file:
     video_bytes = uploaded_file.read()
     st.video(video_bytes, format="video/mp4", width="stretch")
+    
+     # Placeholder for dynamic messages
+    info_audio_placeholder = st.empty()
+    info_audio_placeholder.info("Extracting audio, please wait...")
 
     # Save uploaded video to a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file:
@@ -66,6 +71,10 @@ if uploaded_file is not None:
       # Save audio to a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_audio_file:
         audio.export(temp_audio_file.name, format="mp3")
-        st.success("Audio was extracted.")
+        info_audio_placeholder.success("Audio was extracted.")
         st.audio(temp_audio_file.name, format="audio/mp3")
     
+    info_transcribe_placeholder = st.empty()
+    info_transcribe_placeholder.info("Transcribing audio, please wait... (this may take a while depending on the length of the video)")
+    if st.text_area("Transcription", value=transcribe_audio(open(temp_audio_file.name, "rb").read()), height=300):
+        info_transcribe_placeholder.success("Transcription completed.")
