@@ -1,6 +1,6 @@
 import streamlit as st
 from dotenv import dotenv_values
-from openai import OpenAI
+from openai import OpenAI, AuthenticationError, APIConnectionError, RateLimitError
 from hashlib import md5
 from pydub import AudioSegment
 from pydub.utils import make_chunks
@@ -108,7 +108,8 @@ if not st.session_state.get("openai_api_key"):
 
     else:
         st.info("Add your OpenAI API key to use the app.")
-        st.session_state["openai_api_key"] = st.text_input("Klucz API", type="password")
+        st.page_link("https://platform.openai.com/account/api-keys", label="Get your API key here", help= "Don't have an API key yet?", icon="🔑")
+        st.session_state["openai_api_key"] = st.text_input("API key", type="password")
         if st.session_state["openai_api_key"]:
             st.rerun()
 
@@ -214,7 +215,14 @@ if uploaded_file:
     if st.session_state["transcript"] is None: 
         if st.button("Start Transcription"):
             info_transcribe_placeholder.info("Transcribing audio... (this may take a while depending on the length of the audio)")  
-            transcript = create_transcription(open(st.session_state["audio_file_path"], "rb").read()) 
+            try:
+                transcript = create_transcription(open(st.session_state["audio_file_path"], "rb").read()) 
+            except AuthenticationError:
+                info_transcribe_placeholder.error("Invalid API key. Please check your OpenAI API key and try again (refresh site).")
+                st.stop()
+            except Exception as e:
+                info_transcribe_placeholder.error(f"An error occurred: {str(e)}")
+                st.stop()
             st.session_state["transcript"] = transcript
             st.rerun()
 
