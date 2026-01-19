@@ -1,4 +1,3 @@
-import audio_setup  # Ensure ffmpeg is set up before importing pydub
 import streamlit as st
 from dotenv import dotenv_values
 from openai import OpenAI, AuthenticationError, APIConnectionError, RateLimitError
