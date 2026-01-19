@@ -180,7 +180,7 @@ if uploaded_file:
         st.session_state["video_subtitles"] = None
         
         # if file is video
-        if st.session_state["is_video"]:  # Check if the file is video
+        if st.session_state["is_video"]: 
             st.video(st.session_state["file_bytes"], format="video/mp4")
             # Save uploaded video to a temporary file
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file:
@@ -208,7 +208,10 @@ if uploaded_file:
     # Uploaded file didn't change
     else:
         if st.session_state["is_video"]:
-            st.video(st.session_state["file_bytes"], format="video/mp4")
+            if st.session_state["transcript"]:
+                st.video(st.session_state["file_bytes"], format="video/mp4", subtitles=st.session_state["transcript"]["srt"])
+            else:
+                st.video(st.session_state["file_bytes"], format="video/mp4")
             st.write("Audio:")
         st.audio(st.session_state["audio_file_path"], format="audio/mp3")
         
