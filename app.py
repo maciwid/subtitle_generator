@@ -21,6 +21,14 @@ else:
     AudioSegment.converter = "ffmpeg"
     AudioSegment.ffmpeg = "ffmpeg"
     AudioSegment.ffprobe = "ffprobe"
+
+st.write("CWD:", os.getcwd())
+st.write("Files in repo root:", os.listdir(os.getcwd()))
+
+if os.path.exists("ffmpeg"):
+    st.write("ffmpeg dir contents:", os.listdir("ffmpeg"))
+else:
+    st.write("ffmpeg dir NOT FOUND")
     
 CHUNK_LENGTH_MINS = 15
 AUDIO_TRANSCRIBE_MODEL = "whisper-1"
