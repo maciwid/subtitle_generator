@@ -128,9 +128,6 @@ if "file_bytes" not in st.session_state:
 if "is_video" not in st.session_state:
     st.session_state["is_video"] = None
 
-if "video_subtitles" not in st.session_state:
-    st.session_state["video_subtitles"] = None
-
 if "audio_file_path" not in st.session_state:
     st.session_state["audio_file_path"] = None
 
@@ -150,8 +147,6 @@ if "is_timestamped" not in st.session_state:
 with st.sidebar:
     st.sidebar.title("Settings")
     st.session_state["is_srt"] = st.toggle("Subtitle format (.srt)", value=True, key="srt_format")
-    if not st.session_state["is_srt"]:
-        st.session_state["video_subtitles"] = None  # Reset video subtitles if not SRT
     settings_info = f"""
     Warning: \n
     Any change of these settings will reset text in a transcription box to it's original state. Also, changing settings during transcription will stop the process.
@@ -160,7 +155,6 @@ with st.sidebar:
         st.session_state["is_timestamped"] = st.toggle("Add timestamps", value=False, key="timestamped")
     
     st.info(settings_info, icon="ℹ️")
-    st.write(f"Video subtitles: {st.session_state['video_subtitles']}")
 
 
 st.title("SUBTITLE GENERATOR")
@@ -212,10 +206,7 @@ if uploaded_file:
     # Uploaded file didn't change
     else:
         if st.session_state["is_video"]:
-            if st.session_state["video_subtitles"]:
-                st.video(st.session_state["file_bytes"], format="video/mp4", subtitles=st.session_state["editable_text"])
-            else:
-                st.video(st.session_state["file_bytes"], format="video/mp4")
+            st.video(st.session_state["file_bytes"], format="video/mp4")
             st.write("Audio:")
         st.audio(st.session_state["audio_file_path"], format="audio/mp3")
         
@@ -244,20 +235,13 @@ if uploaded_file:
             download_label = "Download as .txt file"
             file_name = "transcription.txt"
 
-        col1, col2 = st.columns(2)
-        with col1:
-            # Create the download button
-            st.download_button(
-                label=download_label, 
-                data=st.session_state["editable_text"], 
-                file_name=file_name, 
-                mime="text/plain"
-            )
-        if st.session_state["is_video"] & st.session_state["is_srt"]:
-            with col2:
-                st.button(
-                    label="Load .srt to video player",
-                    on_click=lambda:  st.session_state.update({"video_subtitles": True})
-                )
+        # Create the download button
+        st.download_button(
+            label=download_label, 
+            data=st.session_state["editable_text"], 
+            file_name=file_name, 
+            mime="text/plain"
+        )
+
 
    
