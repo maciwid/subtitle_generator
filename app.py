@@ -34,18 +34,6 @@ def transcribe_audio(audio_bytes):
     )
     return transcript
 
-# def get_sentences(transcript):
-#     sentences = []
-
-#     for segment in transcript["segments"]:
-#         sentences.append({
-#             "start": float(segment.start),
-#             "end": float(segment.end),
-#             "text": segment.text.strip()
-#         })
-
-#     return sentences
-
 def format_srt_entry(index, start_time, end_time, text):
     """
     Formats a single SRT entry.
@@ -86,9 +74,10 @@ def create_transcription(audio_bytes):
     full_transcription = []
     srt_output = []
     current_time_offset = 0  # Track the cumulative time offset in seconds
+    col1, col2 = st.columns(2)
     progress_bar = st.progress(0, text = "Transcribing audio in progress...")
     for i, chunk in enumerate(chunks):
-        progress_bar.progress((i + 1) / len(chunks), text = f"Transcribing audio chunk {i + 1} of {len(chunks)}...")
+        progress_bar.progress((i + 1) / len(chunks), text = f"Transcribing audio... (chunk {i + 1} of {len(chunks)})")
         transcript = transcribe_audio(chunk.export(format="mp3").read())
         
         for segment in transcript.segments:
@@ -139,6 +128,9 @@ if "file_bytes" not in st.session_state:
 if "is_video" not in st.session_state:
     st.session_state["is_video"] = None
 
+if "video_subtitles" not in st.session_state:
+    st.session_state["video_subtitles"] = None
+
 if "audio_file_path" not in st.session_state:
     st.session_state["audio_file_path"] = None
 
@@ -158,15 +150,17 @@ if "is_timestamped" not in st.session_state:
 with st.sidebar:
     st.sidebar.title("Settings")
     st.session_state["is_srt"] = st.toggle("Subtitle format (.srt)", value=True, key="srt_format")
+    if not st.session_state["is_srt"]:
+        st.session_state["video_subtitles"] = None  # Reset video subtitles if not SRT
     settings_info = f"""
     Warning: \n
-    Any change of these settings will reset current transcription to it's original state. (Also it's not a good idea to change them during transcription process)
+    Any change of these settings will reset text in a transcription box to it's original state. Also, changing settings during transcription will stop the process.
     """
     if not st.session_state["is_srt"]:
-        st.session_state["is_timestamped"] = st.toggle("Show timestamps", value=False, key="timestamped")
-        settings_info+=(f" The text will {'include' if st.session_state['is_timestamped'] else 'not include'} timestamps.")
-
+        st.session_state["is_timestamped"] = st.toggle("Add timestamps", value=False, key="timestamped")
+    
     st.info(settings_info, icon="ℹ️")
+    st.write(f"Video subtitles: {st.session_state['video_subtitles']}")
 
 
 st.title("SUBTITLE GENERATOR")
@@ -187,6 +181,7 @@ if uploaded_file:
         st.session_state["transcript"] = None
         st.session_state["edtitable_text"] = None
         st.session_state["audio_file_path"] = None
+        st.session_state["video_subtitles"] = None
         
         # if file is video
         if st.session_state["is_video"]:  # Check if the file is video
@@ -217,24 +212,28 @@ if uploaded_file:
     # Uploaded file didn't change
     else:
         if st.session_state["is_video"]:
-            st.video(st.session_state["file_bytes"], format="video/mp4")
+            if st.session_state["video_subtitles"]:
+                st.video(st.session_state["file_bytes"], format="video/mp4", subtitles=st.session_state["editable_text"])
+            else:
+                st.video(st.session_state["file_bytes"], format="video/mp4")
+            st.write("Audio:")
         st.audio(st.session_state["audio_file_path"], format="audio/mp3")
         
     info_transcribe_placeholder = st.empty()
     if st.session_state["transcript"] is None: 
         if st.button("Start Transcription"):
-            info_transcribe_placeholder.info("Transcribing audio, please wait... (this may take a while depending on the length of the audio)")  
+            info_transcribe_placeholder.info("Transcribing audio... (this may take a while depending on the length of the audio)")  
             transcript = create_transcription(open(st.session_state["audio_file_path"], "rb").read()) 
             st.session_state["transcript"] = transcript
             st.rerun()
 
     if st.session_state["transcript"]:
         info_transcribe_placeholder.success("Transcription completed.")
-        st.session_state["editable_text"] = parse_transcript(st.session_state["transcript"]) 
-        st.text_area(
+        transcription_text = parse_transcript(st.session_state["transcript"]) 
+        st.session_state["editable_text"] = st.text_area(
             "Transcription", 
+            value = transcription_text,
             height=300, 
-            key="editable_text"
         )
 
         # Determine the download button parameters based on the subtitle format
@@ -245,12 +244,20 @@ if uploaded_file:
             download_label = "Download as .txt file"
             file_name = "transcription.txt"
 
-        # Create the download button
-        st.download_button(
-            label=download_label, 
-            data=st.session_state["editable_text"], 
-            file_name=file_name, 
-            mime="text/plain"
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            # Create the download button
+            st.download_button(
+                label=download_label, 
+                data=st.session_state["editable_text"], 
+                file_name=file_name, 
+                mime="text/plain"
+            )
+        if st.session_state["is_video"] & st.session_state["is_srt"]:
+            with col2:
+                st.button(
+                    label="Load .srt to video player",
+                    on_click=lambda:  st.session_state.update({"video_subtitles": True})
+                )
 
    
