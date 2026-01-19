@@ -161,7 +161,7 @@ with st.sidebar:
 
 st.title("SUBTITLE GENERATOR")
 
-uploaded_file = st.file_uploader("Send a file for transcription", type=["mp3", "mp4", "m4a", "wav", "mov", "ogg"], key="video_file")
+uploaded_file = st.file_uploader("Send a file for transcription", type=["mp3", "mp4", "wav", "mov", "ogg"], key="video_file")
 if uploaded_file:
     file_extension = uploaded_file.name.split(".")[-1].lower()  # Get file extension
     file_bytes = uploaded_file.read()
