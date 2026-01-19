@@ -6,8 +6,23 @@ from pydub import AudioSegment
 from pydub.utils import make_chunks
 import tempfile
 from io import BytesIO
+import os
 
-CHUNK_LENGTH_MINS = 10
+
+if os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud":
+    FFMPEG_PATH = os.path.join(os.getcwd(), "ffmpeg", "ffmpeg")
+    FFPROBE_PATH = os.path.join(os.getcwd(), "ffmpeg", "ffprobe")
+
+    AudioSegment.converter = FFMPEG_PATH
+    AudioSegment.ffmpeg = FFMPEG_PATH
+    AudioSegment.ffprobe = FFPROBE_PATH
+else:
+    # lokalnie — systemowy ffmpeg
+    AudioSegment.converter = "ffmpeg"
+    AudioSegment.ffmpeg = "ffmpeg"
+    AudioSegment.ffprobe = "ffprobe"
+    
+CHUNK_LENGTH_MINS = 15
 AUDIO_TRANSCRIBE_MODEL = "whisper-1"
 env = dotenv_values(".env")
 
@@ -17,7 +32,7 @@ def get_openai_client():
 
 def split_audio_into_chunks(audio_bytes, chunk_length_ms=CHUNK_LENGTH_MINS * 60 * 1000):
     """
-    Splits the audio into chunks of the specified length (default: 1 minutes).
+    Splits the audio into chunks of the specified length.
     """
     audio = AudioSegment.from_file(BytesIO(audio_bytes), format="mp3")
     chunks = make_chunks(audio, chunk_length_ms)
@@ -68,16 +83,16 @@ def parse_transcript(transcript):
 
 def create_transcription(audio_bytes):
     """
-    Splits the audio into 10-minute chunks, transcribes each chunk, and appends timestamps.
+    Splits the audio into chunks, transcribes each chunk, and appends timestamps.
     """
     chunks = split_audio_into_chunks(audio_bytes)
     full_transcription = []
     srt_output = []
     current_time_offset = 0  # Track the cumulative time offset in seconds
-    col1, col2 = st.columns(2)
     progress_bar = st.progress(0, text = "Transcribing audio in progress...")
     for i, chunk in enumerate(chunks):
         progress_bar.progress((i + 1) / len(chunks), text = f"Transcribing audio... (chunk {i + 1} of {len(chunks)})")
+        current_time_offset = i * (CHUNK_LENGTH_MINS * 60)
         transcript = transcribe_audio(chunk.export(format="mp3").read())
         
         for segment in transcript.segments:
@@ -92,7 +107,7 @@ def create_transcription(audio_bytes):
                 "text": text
             })
             srt_output.append(format_srt_entry(len(srt_output) + 1, start_time, end_time, text))
-        current_time_offset += chunk.duration_seconds
+        # current_time_offset += chunk.duration_seconds
 
     progress_bar.empty()
     # Return SRT or plain text based on the session state
