@@ -1,3 +1,4 @@
+import audio_setup  # Ensure ffmpeg is set up before importing pydub
 import streamlit as st
 from dotenv import dotenv_values
 from openai import OpenAI, AuthenticationError, APIConnectionError, RateLimitError
@@ -6,30 +7,8 @@ from pydub import AudioSegment
 from pydub.utils import make_chunks
 import tempfile
 from io import BytesIO
-import os
 
 
-if os.getenv("STREAMLIT_RUNTIME_ENV") == "cloud":
-    FFMPEG_PATH = os.path.join(os.getcwd(), "ffmpeg", "ffmpeg")
-    FFPROBE_PATH = os.path.join(os.getcwd(), "ffmpeg", "ffprobe")
-
-    AudioSegment.converter = FFMPEG_PATH
-    AudioSegment.ffmpeg = FFMPEG_PATH
-    AudioSegment.ffprobe = FFPROBE_PATH
-else:
-    # lokalnie — systemowy ffmpeg
-    AudioSegment.converter = "ffmpeg"
-    AudioSegment.ffmpeg = "ffmpeg"
-    AudioSegment.ffprobe = "ffprobe"
-
-st.write("CWD:", os.getcwd())
-st.write("Files in repo root:", os.listdir(os.getcwd()))
-
-if os.path.exists("ffmpeg"):
-    st.write("ffmpeg dir contents:", os.listdir("ffmpeg"))
-else:
-    st.write("ffmpeg dir NOT FOUND")
-    
 CHUNK_LENGTH_MINS = 15
 AUDIO_TRANSCRIBE_MODEL = "whisper-1"
 env = dotenv_values(".env")
