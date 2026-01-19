@@ -150,7 +150,7 @@ with st.sidebar:
     st.session_state["is_srt"] = st.toggle("Subtitle format (.srt)", value=True, key="srt_format")
     settings_info = f"""
     Warning: \n
-    Any change of these settings will reset text in a transcription box to it's original state. Also, changing settings during transcription will stop the process.
+    Any change of these settings will reset text in a transcription box to its original state. Also, changing settings during transcription will stop the process.
     """
     if not st.session_state["is_srt"]:
         st.session_state["is_timestamped"] = st.toggle("Add timestamps", value=False, key="timestamped")
